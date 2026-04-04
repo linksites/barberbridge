@@ -2,16 +2,26 @@ import type { EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-function getSafeRedirectPath(request: NextRequest, redirectTo: string | null, next: string | null) {
+function normalizeLocalPath(path: string | null) {
+  if (!path || !path.startsWith('/')) {
+    return '/onboarding'
+  }
+
+  return path
+}
+
+function getSafeRedirectTarget(request: NextRequest, redirectTo: string | null, next: string | null) {
   if (redirectTo) {
     try {
-      if (redirectTo.startsWith('/')) {
-        return redirectTo
-      }
-
-      const url = new URL(redirectTo)
+      const url = redirectTo.startsWith('/')
+        ? new URL(redirectTo, request.nextUrl.origin)
+        : new URL(redirectTo)
 
       if (url.origin === request.nextUrl.origin) {
+        if (url.pathname === '/auth/confirm') {
+          return normalizeLocalPath(url.searchParams.get('next'))
+        }
+
         return `${url.pathname}${url.search}`
       }
     } catch {
@@ -19,11 +29,7 @@ function getSafeRedirectPath(request: NextRequest, redirectTo: string | null, ne
     }
   }
 
-  if (!next || !next.startsWith('/')) {
-    return '/onboarding'
-  }
-
-  return next
+  return normalizeLocalPath(next)
 }
 
 function getRoleFromNext(next: string) {
@@ -37,7 +43,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const tokenHash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
-  const next = getSafeRedirectPath(
+  const next = getSafeRedirectTarget(
     request,
     searchParams.get('redirect_to'),
     searchParams.get('next')
