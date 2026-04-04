@@ -28,6 +28,52 @@ function buildRedirect(request: NextRequest, pathname: string, search?: string) 
   return url
 }
 
+function getMalformedRedirect(request: NextRequest) {
+  const rawUrl = request.url
+  const origin = request.nextUrl.origin
+  const rawPathAndSearch = rawUrl.startsWith(origin) ? rawUrl.slice(origin.length) : rawUrl
+  const rawPath = rawPathAndSearch.split('?')[0]
+
+  if (!/%3f/i.test(rawPath)) {
+    return null
+  }
+
+  let decodedPath = rawPath
+
+  for (let index = 0; index < 2; index += 1) {
+    try {
+      const nextDecodedPath = decodeURIComponent(decodedPath)
+
+      if (nextDecodedPath === decodedPath) {
+        break
+      }
+
+      decodedPath = nextDecodedPath
+    } catch {
+      break
+    }
+  }
+
+  const questionIndex = decodedPath.indexOf('?')
+
+  if (questionIndex === -1) {
+    return null
+  }
+
+  const pathname = decodedPath.slice(0, questionIndex)
+  const search = decodedPath.slice(questionIndex)
+
+  if (!pathname.startsWith('/')) {
+    return null
+  }
+
+  const normalizedUrl = request.nextUrl.clone()
+  normalizedUrl.pathname = pathname
+  normalizedUrl.search = search
+
+  return normalizedUrl
+}
+
 function redirectWithCookies(
   request: NextRequest,
   sourceResponse: NextResponse,
@@ -59,6 +105,12 @@ async function getUserRole(
 }
 
 export async function updateSession(request: NextRequest) {
+  const malformedRedirect = getMalformedRedirect(request)
+
+  if (malformedRedirect) {
+    return NextResponse.redirect(malformedRedirect)
+  }
+
   let response = NextResponse.next({
     request
   })
