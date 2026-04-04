@@ -3,11 +3,31 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 function normalizeLocalPath(path: string | null) {
-  if (!path || !path.startsWith('/')) {
+  if (!path) {
     return '/onboarding'
   }
 
-  return path
+  let normalized = path
+
+  for (let index = 0; index < 2; index += 1) {
+    try {
+      const decoded = decodeURIComponent(normalized)
+
+      if (decoded === normalized) {
+        break
+      }
+
+      normalized = decoded
+    } catch {
+      break
+    }
+  }
+
+  if (!normalized.startsWith('/')) {
+    return '/onboarding'
+  }
+
+  return normalized
 }
 
 function getSafeRedirectTarget(request: NextRequest, redirectTo: string | null, next: string | null) {
