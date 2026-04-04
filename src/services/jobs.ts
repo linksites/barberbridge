@@ -60,7 +60,7 @@ export async function getCurrentShopJobs() {
 
   const { data: jobs, error } = await supabase
     .from('jobs')
-    .select('id, title, city, state, status, amount, payment_model, work_type, created_at')
+    .select('id, title, description, city, state, neighborhood, status, amount, payment_model, work_type, created_at')
     .eq('shop_id', shop.id)
     .order('created_at', { ascending: false })
 

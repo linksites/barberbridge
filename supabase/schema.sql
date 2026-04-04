@@ -202,6 +202,32 @@ using (
   )
 );
 
+drop policy if exists "Barber updates own applications" on public.job_applications;
+create policy "Barber updates own applications"
+on public.job_applications for update
+using (
+  exists (
+    select 1 from public.barber_profiles b
+    where b.id = barber_id and b.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.barber_profiles b
+    where b.id = barber_id and b.user_id = auth.uid()
+  )
+);
+
+drop policy if exists "Barber deletes own applications" on public.job_applications;
+create policy "Barber deletes own applications"
+on public.job_applications for delete
+using (
+  exists (
+    select 1 from public.barber_profiles b
+    where b.id = barber_id and b.user_id = auth.uid()
+  )
+);
+
 drop policy if exists "Barber reads own invitations" on public.invitations;
 create policy "Barber reads own invitations"
 on public.invitations for select
