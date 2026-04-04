@@ -14,6 +14,8 @@ export interface Job {
 export interface BarberProfile {
   id: string
   full_name: string
+  username?: string
+  avatar_url?: string | null
   city: string
   bio: string | null
   specialties: string[]
@@ -25,6 +27,8 @@ export interface BarberProfile {
 export interface ShopProfile {
   id: string
   shop_name: string
+  username?: string
+  avatar_url?: string | null
   city: string
   neighborhood: string | null
   description: string | null

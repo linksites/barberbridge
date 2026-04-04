@@ -11,17 +11,22 @@ export function Hero() {
           Conecte barbeiros e barbearias em um só ecossistema.
         </h1>
         <p className="mt-5 max-w-xl text-lg text-slate-300">
-          Publique vagas, encontre profissionais, organize candidaturas e transforme contratações
-          informais em um fluxo profissional.
+          Publique vagas, encontre profissionais, organize candidaturas e transforme contratações informais em um fluxo profissional.
         </p>
         <div className="mt-8 flex flex-wrap gap-4">
-          <Link href="/register" className="rounded-2xl bg-sky-500 px-5 py-3 font-semibold text-slate-950">
-            Começar agora
+          <Link href="/register?role=barber" className="rounded-2xl bg-sky-500 px-5 py-3 font-semibold text-slate-950">
+            Sou barbeiro
+          </Link>
+          <Link href="/register?role=shop" className="rounded-2xl border border-slate-700 px-5 py-3 font-semibold text-white">
+            Sou barbearia
           </Link>
           <Link href="/jobs" className="rounded-2xl border border-slate-700 px-5 py-3 font-semibold text-white">
             Explorar vagas
           </Link>
         </div>
+        <p className="mt-4 text-sm text-slate-400">
+          Primeiro explore o mercado. Depois escolha seu perfil e siga para o dashboard certo.
+        </p>
       </div>
       <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-950 p-6 shadow-soft">
         <div className="grid gap-4">
@@ -38,7 +43,7 @@ export function Hero() {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
             <p className="text-sm text-slate-400">Operação</p>
             <h3 className="mt-2 text-lg font-semibold">Candidaturas, matching e histórico</h3>
-            <p className="mt-2 text-sm text-slate-400">Tudo preparado para evoluir para SaaS completo</p>
+            <p className="mt-2 text-sm text-slate-400">Tudo preparado para evoluir para um SaaS completo</p>
           </div>
         </div>
       </div>

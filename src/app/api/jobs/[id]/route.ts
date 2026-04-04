@@ -53,15 +53,15 @@ export async function PATCH(
   const amount = Number(body.amount)
 
   if (!title || !description || !city) {
-    return NextResponse.json({ ok: false, message: 'Preencha titulo, descricao e cidade para salvar a vaga.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Preencha título, descrição e cidade para salvar a vaga.' }, { status: 400 })
   }
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ ok: false, message: 'Informe um valor valido para a vaga.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Informe um valor válido para a vaga.' }, { status: 400 })
   }
 
   if (!['draft', 'open', 'closed'].includes(status)) {
-    return NextResponse.json({ ok: false, message: 'Status de vaga invalido.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Status de vaga inválido.' }, { status: 400 })
   }
 
   const { data: existingJob } = await supabase
@@ -72,7 +72,7 @@ export async function PATCH(
     .maybeSingle()
 
   if (!existingJob) {
-    return NextResponse.json({ ok: false, message: 'Vaga nao encontrada para esta barbearia.' }, { status: 404 })
+    return NextResponse.json({ ok: false, message: 'Vaga não encontrada para esta barbearia.' }, { status: 404 })
   }
 
   const { data: job, error } = await supabase
@@ -119,5 +119,5 @@ export async function DELETE(
     return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, message: 'Vaga excluida com sucesso.' })
+  return NextResponse.json({ ok: true, message: 'Vaga excluída com sucesso.' })
 }

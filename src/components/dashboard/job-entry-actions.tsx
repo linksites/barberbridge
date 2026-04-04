@@ -38,13 +38,13 @@ export function JobEntryActions({ job }: JobEntryActionsProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setMessage(data.message ?? 'Nao foi possivel excluir a vaga.')
+        setMessage(data.message ?? 'Não foi possível excluir a vaga.')
         return
       }
 
       router.refresh()
     } catch {
-      setMessage('Nao foi possivel excluir a vaga.')
+      setMessage('Não foi possível excluir a vaga.')
     } finally {
       setIsDeleting(false)
     }

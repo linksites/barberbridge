@@ -4,12 +4,43 @@ create table if not exists public.user_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   role text not null check (role in ('barber', 'shop', 'admin')),
   full_name text,
+  username text,
+  avatar_url text,
   phone text,
   city text,
   state text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create or replace function public.slugify_profile_value(input text)
+returns text
+language sql
+immutable
+as $$
+  select trim(both '-' from regexp_replace(lower(coalesce(input, '')), '[^a-z0-9]+', '-', 'g'));
+$$;
+
+create or replace function public.generate_profile_username(seed text, profile_user_id uuid)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  base_username text;
+  suffix text;
+begin
+  base_username := public.slugify_profile_value(seed);
+
+  if base_username = '' then
+    base_username := 'perfil';
+  end if;
+
+  suffix := substr(replace(profile_user_id::text, '-', ''), 1, 8);
+
+  return left(base_username, 23) || '-' || suffix;
+end;
+$$;
 
 create table if not exists public.barber_profiles (
   id uuid primary key default uuid_generate_v4(),
@@ -121,6 +152,104 @@ select
 from public.jobs j
 left join public.shop_profiles s on s.id = j.shop_id;
 
+create unique index if not exists user_profiles_username_lower_idx
+on public.user_profiles (lower(username))
+where username is not null;
+
+insert into public.user_profiles (id, role, full_name, username)
+select
+  users.id,
+  case
+    when users.raw_user_meta_data ->> 'role' in ('barber', 'shop', 'admin') then users.raw_user_meta_data ->> 'role'
+    else 'barber'
+  end,
+  nullif(
+    coalesce(
+      users.raw_user_meta_data ->> 'full_name',
+      users.raw_user_meta_data ->> 'name',
+      ''
+    ),
+    ''
+  ),
+  public.generate_profile_username(
+    coalesce(
+      nullif(users.raw_user_meta_data ->> 'full_name', ''),
+      nullif(users.raw_user_meta_data ->> 'name', ''),
+      split_part(coalesce(users.email, ''), '@', 1),
+      'perfil'
+    ),
+    users.id
+  )
+from auth.users users
+left join public.user_profiles profiles on profiles.id = users.id
+where profiles.id is null
+on conflict (id) do nothing;
+
+update public.user_profiles profiles
+set username = public.generate_profile_username(
+  coalesce(
+    nullif(profiles.full_name, ''),
+    split_part(coalesce(users.email, ''), '@', 1),
+    'perfil'
+  ),
+  profiles.id
+)
+from auth.users users
+where users.id = profiles.id
+  and (profiles.username is null or btrim(profiles.username) = '');
+
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_role text;
+  suggested_name text;
+begin
+  requested_role := case
+    when new.raw_user_meta_data ->> 'role' in ('barber', 'shop', 'admin') then new.raw_user_meta_data ->> 'role'
+    else 'barber'
+  end;
+
+  suggested_name := coalesce(
+    nullif(new.raw_user_meta_data ->> 'full_name', ''),
+    nullif(new.raw_user_meta_data ->> 'name', ''),
+    split_part(coalesce(new.email, ''), '@', 1),
+    'perfil'
+  );
+
+  insert into public.user_profiles (id, role, full_name, username)
+  values (
+    new.id,
+    requested_role,
+    nullif(
+      coalesce(
+        new.raw_user_meta_data ->> 'full_name',
+        new.raw_user_meta_data ->> 'name',
+        ''
+      ),
+      ''
+    ),
+    public.generate_profile_username(suggested_name, new.id)
+  )
+  on conflict (id) do update
+  set
+    role = public.user_profiles.role,
+    full_name = coalesce(public.user_profiles.full_name, excluded.full_name),
+    username = coalesce(public.user_profiles.username, excluded.username),
+    updated_at = now();
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_auth_user();
+
 alter table public.user_profiles enable row level security;
 alter table public.barber_profiles enable row level security;
 alter table public.barber_portfolio_items enable row level security;
@@ -147,6 +276,11 @@ create policy "Users manage own profile shell"
 on public.user_profiles for all
 using (auth.uid() = id)
 with check (auth.uid() = id);
+
+drop policy if exists "Public can view user profile shells" on public.user_profiles;
+create policy "Public can view user profile shells"
+on public.user_profiles for select
+using (username is not null and btrim(username) <> '');
 
 drop policy if exists "Barber manages own profile" on public.barber_profiles;
 create policy "Barber manages own profile"

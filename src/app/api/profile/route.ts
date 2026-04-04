@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createFallbackUsername, isValidHttpUrl, isValidUsername, normalizeUsername } from '@/lib/public-profiles'
 
 function asString(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
   const city = asString(body.city)
   const state = asString(body.state)
   const phone = asString(body.phone)
+  const requestedUsername = normalizeUsername(asString(body.username))
+  const avatarUrl = asString(body.avatar_url)
   const instagram = asString(body.instagram)
   const bio = asString(body.bio)
   const neighborhood = asString(body.neighborhood)
@@ -50,19 +53,42 @@ export async function POST(request: Request) {
     )
   }
 
+  if (!requestedUsername || !isValidUsername(requestedUsername)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: 'Escolha um username público com pelo menos 3 caracteres, usando letras, números e hífens.'
+      },
+      { status: 400 }
+    )
+  }
+
+  if (avatarUrl && !isValidHttpUrl(avatarUrl)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: 'A foto precisa ser um link http ou https válido.'
+      },
+      { status: 400 }
+    )
+  }
+
   const { data: userProfile } = await supabase
     .from('user_profiles')
-    .select('role')
+    .select('role, username')
     .eq('id', user.id)
     .maybeSingle()
 
   const role = userProfile?.role === 'shop' ? 'shop' : 'barber'
+  const username = requestedUsername || userProfile?.username || createFallbackUsername(fullName || user.email || 'perfil', user.id)
 
   const { error: userProfileError } = await supabase.from('user_profiles').upsert(
     {
       id: user.id,
       role,
       full_name: fullName,
+      username,
+      avatar_url: avatarUrl || null,
       phone,
       city,
       state
@@ -71,12 +97,15 @@ export async function POST(request: Request) {
   )
 
   if (userProfileError) {
+    const isDuplicateUsername =
+      userProfileError.code === '23505' || userProfileError.message.toLowerCase().includes('duplicate')
+
     return NextResponse.json(
       {
         ok: false,
-        message: userProfileError.message
+        message: isDuplicateUsername ? 'Esse username já está em uso. Escolha outro para o perfil público.' : userProfileError.message
       },
-      { status: 500 }
+      { status: isDuplicateUsername ? 409 : 500 }
     )
   }
 

@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { normalizeUsername } from '@/lib/public-profiles'
 
 interface ProfileFormProps {
   role: 'barber' | 'shop'
   initialValues: {
     full_name: string
+    username: string
+    avatar_url: string
     city: string
     state: string
     phone: string
@@ -21,6 +24,8 @@ interface ProfileFormProps {
 export function ProfileForm({ role, initialValues }: ProfileFormProps) {
   const router = useRouter()
   const [fullName, setFullName] = useState(initialValues.full_name)
+  const [username, setUsername] = useState(initialValues.username)
+  const [avatarUrl, setAvatarUrl] = useState(initialValues.avatar_url)
   const [city, setCity] = useState(initialValues.city)
   const [state, setState] = useState(initialValues.state)
   const [phone, setPhone] = useState(initialValues.phone)
@@ -42,6 +47,8 @@ export function ProfileForm({ role, initialValues }: ProfileFormProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           full_name: fullName,
+          username,
+          avatar_url: avatarUrl,
           city,
           state,
           phone,
@@ -71,6 +78,34 @@ export function ProfileForm({ role, initialValues }: ProfileFormProps) {
 
   return (
     <div className="grid gap-4 rounded-3xl border border-slate-800 bg-slate-900/70 p-8">
+      <div className="grid gap-4 md:grid-cols-[96px,1fr] md:items-center">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={`Foto de ${fullName || username || 'perfil'}`}
+            className="h-24 w-24 rounded-3xl object-cover"
+          />
+        ) : (
+          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-slate-800 text-2xl font-semibold text-white">
+            {(fullName || username || 'BB').slice(0, 2).toUpperCase()}
+          </div>
+        )}
+        <div className="grid gap-4 md:grid-cols-2">
+          <input
+            value={username}
+            onChange={(e) => setUsername(normalizeUsername(e.target.value))}
+            placeholder="username-publico"
+          />
+          <input
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            placeholder="https://sua-foto-publica.jpg"
+          />
+        </div>
+      </div>
+      <p className="text-sm text-slate-400">
+        Seu perfil público ficará disponível em <span className="text-sky-300">/u/{username || 'seu-username'}</span>.
+      </p>
       <input
         value={fullName}
         onChange={(e) => setFullName(e.target.value)}

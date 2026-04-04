@@ -30,7 +30,7 @@ export default function RegisterPage() {
     }
 
     if (password !== confirmPassword) {
-      setMessage('A confirmacao de senha nao confere.')
+      setMessage('A confirmação de senha não confere.')
       return
     }
 
@@ -63,10 +63,10 @@ export default function RegisterPage() {
         return
       }
 
-      setMessage('Conta criada. Se a confirmacao de e-mail estiver ativa no Supabase, confirme o e-mail antes de entrar.')
+      setMessage('Conta criada. Se a confirmação de e-mail estiver ativa no Supabase, confirme o e-mail antes de entrar.')
       window.location.assign(`/login?role=${role}&email=${encodeURIComponent(email)}`)
     } catch {
-      setMessage('Nao foi possivel criar a conta agora.')
+      setMessage('Não foi possível criar a conta agora.')
     } finally {
       setIsSubmitting(false)
     }
@@ -79,7 +79,7 @@ export default function RegisterPage() {
         <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-soft">
           <h1 className="text-3xl font-bold text-white">Criar conta</h1>
           <p className="mt-2 text-slate-400">
-            Crie acesso com e-mail e senha. O magic link continua disponivel apenas como alternativa.
+            Crie acesso com e-mail e senha. O magic link continua disponível apenas como alternativa.
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -95,7 +95,7 @@ export default function RegisterPage() {
               className={`rounded-2xl border p-5 text-left ${role === 'shop' ? 'border-sky-400 bg-sky-500/10' : 'border-slate-800 bg-slate-950/70'}`}
             >
               <h2 className="text-lg font-semibold text-white">Sou barbearia</h2>
-              <p className="mt-2 text-sm text-slate-400">Quero publicar vagas e organizar minha operacao.</p>
+              <p className="mt-2 text-sm text-slate-400">Quero publicar vagas e organizar minha operação.</p>
             </button>
           </div>
 
@@ -129,7 +129,7 @@ export default function RegisterPage() {
               {isSubmitting ? 'Criando conta...' : 'Criar conta com senha'}
             </button>
             <Link href={`/login?role=${role}`} className="rounded-2xl border border-slate-700 px-5 py-3 font-semibold text-white">
-              Ja tenho conta
+              Já tenho conta
             </Link>
           </div>
 

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SiteHeader } from '@/components/site-header'
 import { Footer } from '@/components/footer'
@@ -17,7 +18,10 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
       <SiteHeader />
       <section className="mx-auto max-w-4xl px-6 py-16">
         <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-soft">
-          <p className="text-sm text-slate-400">{job.shop_name ?? 'Barbearia parceira'}</p>
+          <Link href="/jobs" className="text-sm text-sky-300">
+            ← Voltar para vagas
+          </Link>
+          <p className="mt-4 text-sm text-slate-400">{job.shop_name ?? 'Barbearia parceira'}</p>
           <h1 className="mt-2 text-4xl font-bold text-white">{job.title}</h1>
           <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-300">
             <span className="rounded-full border border-slate-700 px-3 py-1">{job.city}</span>
@@ -26,9 +30,20 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
           </div>
           <p className="mt-6 text-lg leading-8 text-slate-300">{job.description}</p>
           <p className="mt-6 text-2xl font-semibold text-sky-300">{currency(job.amount)}</p>
-          <button className="mt-8 rounded-2xl bg-sky-500 px-5 py-3 font-semibold text-slate-950">
-            Candidatar-se
-          </button>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/register?role=barber"
+              className="rounded-2xl bg-sky-500 px-5 py-3 font-semibold text-slate-950"
+            >
+              Criar conta para continuar
+            </Link>
+            <Link
+              href={`/login?role=barber&next=${encodeURIComponent('/onboarding?role=barber')}`}
+              className="rounded-2xl border border-slate-700 px-5 py-3 font-semibold text-white"
+            >
+              Ja tenho acesso
+            </Link>
+          </div>
         </div>
       </section>
       <Footer />

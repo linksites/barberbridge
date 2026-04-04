@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { buildPublicProfilePath } from '@/lib/public-profiles'
 
 type JobSummary = {
   id: string
@@ -191,7 +192,7 @@ export async function getCurrentProfileSettings() {
 
   const { data: userProfile } = await supabase
     .from('user_profiles')
-    .select('role, full_name, city, state, phone')
+    .select('role, full_name, city, state, phone, username, avatar_url')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -208,8 +209,11 @@ export async function getCurrentProfileSettings() {
 
     return {
       role: 'shop' as const,
+      publicProfilePath: userProfile.username ? buildPublicProfilePath(userProfile.username) : null,
       initialValues: {
         full_name: userProfile.full_name ?? '',
+        username: userProfile.username ?? '',
+        avatar_url: userProfile.avatar_url ?? '',
         city: userProfile.city ?? '',
         state: userProfile.state ?? '',
         phone: userProfile.phone ?? '',
@@ -230,8 +234,11 @@ export async function getCurrentProfileSettings() {
 
   return {
     role: 'barber' as const,
+    publicProfilePath: userProfile.username ? buildPublicProfilePath(userProfile.username) : null,
     initialValues: {
       full_name: userProfile.full_name ?? '',
+      username: userProfile.username ?? '',
+      avatar_url: userProfile.avatar_url ?? '',
       city: userProfile.city ?? '',
       state: userProfile.state ?? '',
       phone: userProfile.phone ?? '',

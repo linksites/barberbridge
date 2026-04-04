@@ -1,31 +1,68 @@
-# BarberBridge
+﻿# BarberBridge
 
 Marketplace em Next.js + Supabase para conectar barbeiros e barbearias.
 
-## Status atual
+## Visão geral
 
-Esta base ja cobre:
+O projeto já saiu da fase de landing page isolada e hoje cobre uma base funcional de produto:
 
-- landing page e listagem publica de vagas
-- detalhes de vaga via Supabase
+- páginas públicas para descoberta de vagas
+- autenticação com Supabase
+- onboarding por perfil
+- dashboards separados para barbeiro e barbearia
+- criação, edição e exclusão de registros do próprio usuário nos fluxos principais
+
+O ambiente publicado está em:
+
+- `https://barberbridge.vercel.app`
+
+## O que já funciona
+
+### Público
+
+- home com direcionamento para barbeiro, barbearia e exploração de vagas
+- listagem pública em `/jobs`
+- detalhe de vaga em `/job/[id]`
+- fluxo guiado de entrada a partir de vaga -> cadastro -> login
+
+### Autenticação e onboarding
+
 - escolha de perfil em `/register`
-- login por link magico com Supabase
-- fallback de login por codigo OTP em `/login`
-- rota de confirmacao do link em `/auth/confirm`
+- login por magic link com Supabase
+- fallback por código OTP em `/login`
+- login por e-mail e senha
+- callback SSR em `/auth/confirm`
+- normalização de redirects quebrados ou codificados no callback
 - onboarding persistido em `user_profiles`, `barber_profiles` e `shop_profiles`
-- protecao de rotas com sessao SSR e redirecionamento por role
-- criacao real de vagas vinculada a `shop_profile` autenticada
-- dashboard do barbeiro com leitura real de perfil, candidaturas, reviews e convites
-- edicao persistida de perfil em `/dashboard/profile`
-- dashboards iniciais para barbeiro e barbearia
-- schema SQL com tabelas principais, RLS e base para mensagens
 
-Ainda estao em modo mock ou parcial:
+### Navegação
 
-- shortlist de barbeiros
-- inbox e realtime
-- portfolio com upload real
-- substituicao completa dos mocks restantes do produto
+- header público com CTAs por perfil
+- navegação de dashboard por role em `src/app/dashboard/layout.tsx`
+- dashboard do barbeiro com atalhos para vagas, candidaturas, convites e perfil
+- dashboard da barbearia com atalhos para operação e gestão das vagas
+
+### Barbearia
+
+- criação real de vaga vinculada a `shop_profile`
+- listagem de vagas próprias no dashboard
+- edição de vaga própria
+- exclusão de vaga própria
+
+### Barbeiro
+
+- leitura real de perfil, candidaturas, reviews e convites
+- edição persistida de perfil
+- edição da própria candidatura enquanto ela ainda está em andamento
+- exclusão da própria candidatura enquanto ela ainda está em andamento
+
+## O que ainda está parcial
+
+- shortlist de barbeiros ainda usa mock
+- inbox e realtime ainda não estão ligados ao banco
+- portfólio ainda não usa upload real com Storage
+- perfil público `/u/[username]` ainda não está fechado como experiência de produção
+- envio de convites pela barbearia ainda não fecha toda a ponta operacional
 
 ## Stack
 
@@ -34,7 +71,7 @@ Ainda estao em modo mock ou parcial:
 - Tailwind CSS
 - Supabase (`@supabase/ssr` + `@supabase/supabase-js`)
 
-## Como rodar
+## Como rodar localmente
 
 1. Copie `.env.example` para `.env.local`
 2. Preencha:
@@ -49,95 +86,115 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
 5. Rode `npm run dev`
 6. Acesse `http://localhost:3000`
 
-## Configuracao do Supabase Auth
+## Fluxo principal do produto
 
-Para o fluxo de magic link e codigo OTP funcionar com SSR:
+### Visitante
 
-1. Em `Authentication -> URL Configuration`, adicione a URL local do app em Redirect URLs
-2. Garanta que `http://localhost:3000/auth/confirm` esteja permitido
-3. Em `Authentication -> Email Templates -> Magic Link`, envie no mesmo e-mail o botao do magic link e tambem o codigo OTP
-4. Se voce personalizar templates de e-mail do Supabase, mantenha o fluxo compativel com `token_hash`, `redirect_to` e `{{ .Token }}`
+1. Entra em `/`
+2. Vai para `/jobs` ou escolhe o perfil em `/register`
+3. Abre uma vaga em `/job/[id]`
+4. Segue para cadastro ou login
 
-Template sugerido para o Magic Link:
+### Barbeiro
+
+1. Faz login em `/login`
+2. Conclui onboarding em `/onboarding`
+3. Cai em `/dashboard/barber`
+4. Explora vagas
+5. Acompanha candidaturas em `/dashboard/applications`
+6. Acompanha convites em `/dashboard/invitations`
+
+### Barbearia
+
+1. Faz login em `/login`
+2. Conclui onboarding em `/onboarding`
+3. Cai em `/dashboard/shop`
+4. Publica vaga
+5. Edita ou exclui vagas próprias
+6. Evolui o funil de contratação
+
+## Configuração do Supabase Auth
+
+Para o fluxo de magic link e código OTP funcionar com SSR:
+
+1. Em `Authentication -> URL Configuration`, configure:
+
+```txt
+Site URL:
+https://barberbridge.vercel.app
+
+Redirect URLs:
+http://localhost:3000/**
+https://barberbridge.vercel.app/**
+```
+
+2. Em `Authentication -> Email Templates -> Magic Link`, envie no mesmo e-mail:
+- o botão do magic link
+- o código OTP
+
+Template sugerido:
 
 ```html
 <h2>Seu acesso ao BarberBridge</h2>
-<p>Clique no botao abaixo para entrar com seguranca na sua conta.</p>
+<p>Clique no botão abaixo para entrar com segurança na sua conta.</p>
 <p>
   <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&redirect_to={{ .RedirectTo }}">
     Entrar no BarberBridge
   </a>
 </p>
-<p>Se preferir, use este codigo de 6 digitos:</p>
+<p>Se preferir, use este código de 6 dígitos:</p>
 <p><strong>{{ .Token }}</strong></p>
 ```
 
-Fluxo atual:
+### Observações sobre o callback
 
-1. Usuario escolhe o perfil em `/register`
-2. Faz login em `/login?role=...`
-3. Recebe um e-mail com link magico e codigo OTP
-4. O Supabase redireciona para `/auth/confirm` quando o link e usado
-5. Se preferir, o usuario pode validar o codigo diretamente em `/login`
-6. A sessao segue para `/onboarding`
-7. O onboarding salva os dados no banco e redireciona para o dashboard correspondente
+- o app trata `token_hash`, `redirect_to` e redirects codificados na rota `/auth/confirm`
+- o login por código OTP também pode ser validado direto em `/login`
+- se um link antigo apontar para um deployment antigo da Vercel, gere um e-mail novo
 
 ## Deploy na Vercel
 
-O projeto esta preparado para deploy padrao na Vercel sem configuracao especial de framework.
+O projeto está preparado para deploy padrão na Vercel.
 
 ### Checklist
 
-1. Importe o repositorio na Vercel
-2. Mantenha o framework detectado como `Next.js`
-3. Em `Settings -> Environment Variables`, adicione:
+1. Importe o repositório na Vercel
+2. Mantenha o framework como `Next.js`
+3. Adicione as env vars:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
 ```
 
-4. Em `Settings -> Node.js Version`, prefira Node 20 ou 22
-5. Faca o primeiro deploy
+4. Use Node 20
+5. Faça o deploy
 
-### Ajustes no Supabase para producao
+O `package.json` já fixa:
 
-Depois de ter a URL da Vercel:
-
-1. Defina a `Site URL` com o dominio de producao
-2. Adicione o callback de producao em Redirect URLs:
-
-```txt
-https://seu-dominio.vercel.app/auth/confirm
+```json
+"engines": {
+  "node": "20.x"
+}
 ```
-
-3. Se quiser testar previews com magic link, adicione tambem as URLs de preview que voce realmente usar no fluxo de autenticacao
-
-### Observacoes importantes
-
-- O app usa `window.location.origin` para montar o redirect do login, entao o dominio precisa estar autorizado no Supabase
-- `.env.local`, `.next`, `node_modules` e `.vercel` ja estao ignorados no repositorio
-- O projeto foi atualizado para `next 15.5.14`, removendo as vulnerabilidades reportadas pelo `npm audit` antes do deploy
 
 ## Estrutura principal
 
 - `src/app`: rotas App Router
-- `src/components`: blocos de UI
-- `src/services`: consultas e agregacoes do produto
-- `src/lib/supabase`: clients SSR, browser e proxy de sessao
+- `src/app/api`: endpoints de onboarding, perfil, vagas, candidaturas e convites
+- `src/components`: UI pública e componentes de dashboard
+- `src/services`: consultas e agregações do produto
+- `src/lib/supabase`: clients SSR, browser e proxy de sessão
 - `supabase/schema.sql`: schema inicial e policies
 
-## Proximos passos recomendados
+## Importante após atualizar o schema
 
-1. Ligar mensagens ao Realtime
-2. Integrar portfolio com Supabase Storage
-3. Criar shortlist real de barbeiros com filtros
-4. Substituir os mocks restantes do perfil publico `/u/[username]`
-5. Evoluir o lado da barbearia para enviar convites reais a barbeiros
+Se você já aplicou o schema no Supabase antes das últimas etapas, reaplique a parte nova de [supabase/schema.sql](./supabase/schema.sql) para adicionar as policies mais recentes, especialmente:
 
-## Importante apos atualizar o projeto
+- `invitations`
+- `job_applications` update/delete pelo barbeiro
 
-Se voce ja aplicou o schema no Supabase antes das ultimas etapas, reaplique a parte nova de [supabase/schema.sql](./supabase/schema.sql) para adicionar as policies de `invitations`. Sem isso, a tela de convites nao conseguira ler nem atualizar status com RLS ativo.
+Sem isso, parte do CRUD vai falhar por causa do RLS.
 
 ## Rotas principais
 
@@ -156,3 +213,11 @@ Se voce ja aplicou o schema no Supabase antes das ultimas etapas, reaplique a pa
 - `/dashboard/applications`
 - `/dashboard/invitations`
 - `/dashboard/profile`
+
+## Próximos passos recomendados
+
+1. Ligar mensagens ao Realtime
+2. Integrar portfólio com Supabase Storage
+3. Criar shortlist real de barbeiros com filtros
+4. Fechar o perfil público `/u/[username]`
+5. Implementar envio real de convites pela barbearia

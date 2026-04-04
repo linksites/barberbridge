@@ -34,14 +34,14 @@ export function ApplicationEntryActions({
       const data = await response.json()
 
       if (!response.ok) {
-        setFeedback(data.message ?? 'Nao foi possivel atualizar a candidatura.')
+        setFeedback(data.message ?? 'Não foi possível atualizar a candidatura.')
         return
       }
 
       setFeedback(data.message)
       router.refresh()
     } catch {
-      setFeedback('Nao foi possivel atualizar a candidatura.')
+      setFeedback('Não foi possível atualizar a candidatura.')
     } finally {
       setIsSaving(false)
     }
@@ -62,13 +62,13 @@ export function ApplicationEntryActions({
       const data = await response.json()
 
       if (!response.ok) {
-        setFeedback(data.message ?? 'Nao foi possivel excluir a candidatura.')
+        setFeedback(data.message ?? 'Não foi possível excluir a candidatura.')
         return
       }
 
       router.refresh()
     } catch {
-      setFeedback('Nao foi possivel excluir a candidatura.')
+      setFeedback('Não foi possível excluir a candidatura.')
     } finally {
       setIsDeleting(false)
     }
@@ -86,7 +86,7 @@ export function ApplicationEntryActions({
         onChange={(event) => setMessage(event.target.value)}
         rows={4}
         className="mt-3 w-full"
-        placeholder="Explique rapidamente por que esta vaga combina com voce."
+        placeholder="Explique rapidamente por que esta vaga combina com você."
       />
       <div className="mt-4 flex flex-wrap gap-3">
         <button

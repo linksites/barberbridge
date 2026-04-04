@@ -36,7 +36,7 @@ export function ShopJobForm({
   const [neighborhood, setNeighborhood] = useState(initialValues?.neighborhood ?? '')
   const [amount, setAmount] = useState(initialValues?.amount ?? '')
   const [workType, setWorkType] = useState(initialValues?.workType ?? 'Freelancer')
-  const [paymentModel, setPaymentModel] = useState(initialValues?.paymentModel ?? 'Diaria')
+  const [paymentModel, setPaymentModel] = useState(initialValues?.paymentModel ?? 'Diária')
   const [status, setStatus] = useState(initialValues?.status ?? 'open')
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -65,7 +65,7 @@ export function ShopJobForm({
       const data = await response.json()
 
       if (!response.ok) {
-        setMessage(data.message ?? 'Nao foi possivel salvar a vaga.')
+        setMessage(data.message ?? 'Não foi possível salvar a vaga.')
         return
       }
 
@@ -77,7 +77,7 @@ export function ShopJobForm({
         setNeighborhood('')
         setAmount('')
         setWorkType('Freelancer')
-        setPaymentModel('Diaria')
+        setPaymentModel('Diária')
         setStatus('open')
       }
 
@@ -85,7 +85,7 @@ export function ShopJobForm({
       router.refresh()
       onSuccess?.()
     } catch {
-      setMessage(mode === 'edit' ? 'Nao foi possivel atualizar a vaga.' : 'Nao foi possivel publicar a vaga.')
+      setMessage(mode === 'edit' ? 'Não foi possível atualizar a vaga.' : 'Não foi possível publicar a vaga.')
     } finally {
       setIsSubmitting(false)
     }
@@ -93,8 +93,8 @@ export function ShopJobForm({
 
   return (
     <div className="grid gap-4">
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titulo da vaga" />
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descricao da vaga" rows={5} />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título da vaga" />
+      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição da vaga" rows={5} />
       <div className="grid gap-4 md:grid-cols-2">
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" />
         <input value={state} onChange={(e) => setState(e.target.value)} placeholder="Estado" />
@@ -107,13 +107,13 @@ export function ShopJobForm({
         <select value={workType} onChange={(e) => setWorkType(e.target.value)}>
           <option value="Freelancer">Freelancer</option>
           <option value="Fixo">Fixo</option>
-          <option value="Temporario">Temporario</option>
+          <option value="Temporário">Temporário</option>
         </select>
         <select value={paymentModel} onChange={(e) => setPaymentModel(e.target.value)}>
-          <option value="Diaria">Diaria</option>
-          <option value="Comissao + base">Comissao + base</option>
-          <option value="Comissao">Comissao</option>
-          <option value="Salario fixo">Salario fixo</option>
+          <option value="Diária">Diária</option>
+          <option value="Comissão + base">Comissão + base</option>
+          <option value="Comissão">Comissão</option>
+          <option value="Salário fixo">Salário fixo</option>
           <option value="Por atendimento">Por atendimento</option>
         </select>
       </div>

@@ -1,4 +1,4 @@
-import { CalendarDays, MessageSquareMore, Scissors, Star } from 'lucide-react'
+﻿import { CalendarDays, MessageSquareMore, Scissors, Star } from 'lucide-react'
 import Link from 'next/link'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { InvitationActions } from '@/components/dashboard/invitation-actions'
@@ -18,7 +18,8 @@ export default async function BarberDashboardPage() {
   const { profile, applications, reviews, invitations } = await getCurrentBarberDashboard()
   const viewedApplications = applications.filter((item) => item.status === 'viewed').length
   const activeApplications = applications.filter((item) => ['pending', 'viewed'].includes(item.status)).length
-  const averageRating = reviews.length > 0 ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length : Number(profile?.average_rating ?? 0)
+  const averageRating =
+    reviews.length > 0 ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length : Number(profile?.average_rating ?? 0)
   const stats = [
     {
       title: 'Especialidades',
@@ -45,7 +46,7 @@ export default async function BarberDashboardPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
       <div className="max-w-3xl">
-        <p className="text-sm uppercase tracking-[0.2em] text-sky-300">Barber area</p>
+        <p className="text-sm uppercase tracking-[0.2em] text-sky-300">Área do barbeiro</p>
         <h1 className="mt-3 text-4xl font-bold text-white">Dashboard do barbeiro</h1>
         <p className="mt-3 text-slate-300">
           {profile
@@ -64,7 +65,11 @@ export default async function BarberDashboardPage() {
         <SectionCard
           title="Perfil profissional"
           description="Resumo real do seu perfil persistido no Supabase."
-          action={<Link href="/dashboard/profile" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">Editar perfil</Link>}
+          action={
+            <Link href="/dashboard/profile" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">
+              Editar perfil
+            </Link>
+          }
         >
           {profile ? (
             <div className="grid gap-4 md:grid-cols-2">
@@ -99,17 +104,28 @@ export default async function BarberDashboardPage() {
         <SectionCard
           title="Mensagens"
           description="Essa área ainda está mockada. O próximo passo é ligá-la ao Realtime."
-          action={<Link href="/dashboard/messages" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">Abrir inbox</Link>}
+          action={
+            <Link href="/dashboard/messages" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">
+              Abrir inbox
+            </Link>
+          }
         >
-          <EmptyState title="Mensagens em preparação" description="A estrutura já existe no banco, mas a experiência em tempo real ainda será conectada." />
+          <EmptyState
+            title="Mensagens em preparação"
+            description="A estrutura já existe no banco, mas a experiência em tempo real ainda será conectada."
+          />
         </SectionCard>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         <SectionCard
           title="Minhas candidaturas"
-          description="Consulta real da job_applications com o contexto da vaga."
-          action={<Link href="/dashboard/applications" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">Ver todas</Link>}
+          description="Consulta real da `job_applications` com o contexto da vaga."
+          action={
+            <Link href="/dashboard/applications" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">
+              Ver todas
+            </Link>
+          }
         >
           {applications.length > 0 ? (
             <div className="space-y-4">
@@ -135,7 +151,11 @@ export default async function BarberDashboardPage() {
         <SectionCard
           title="Convites recebidos"
           description="Leitura real dos convites enviados por barbearias."
-          action={<Link href="/dashboard/invitations" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">Abrir área</Link>}
+          action={
+            <Link href="/dashboard/invitations" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">
+              Abrir área
+            </Link>
+          }
         >
           {invitations.length > 0 ? (
             <div className="space-y-4">
@@ -166,7 +186,11 @@ export default async function BarberDashboardPage() {
         <SectionCard
           title="Avaliações"
           description="Leitura real das reviews recebidas pelo seu usuário."
-          action={<Link href="/dashboard/reviews" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">Ver todas</Link>}
+          action={
+            <Link href="/dashboard/reviews" className="rounded-2xl border border-slate-700 px-4 py-2 text-sm text-white">
+              Ver todas
+            </Link>
+          }
         >
           {reviews.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-3">

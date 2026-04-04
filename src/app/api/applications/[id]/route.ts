@@ -47,11 +47,11 @@ export async function PATCH(
     .maybeSingle()
 
   if (!application) {
-    return NextResponse.json({ ok: false, message: 'Candidatura nao encontrada para este barbeiro.' }, { status: 404 })
+    return NextResponse.json({ ok: false, message: 'Candidatura não encontrada para este barbeiro.' }, { status: 404 })
   }
 
   if (!['pending', 'viewed'].includes(application.status)) {
-    return NextResponse.json({ ok: false, message: 'So e possivel editar candidaturas ainda em andamento.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Só é possível editar candidaturas ainda em andamento.' }, { status: 400 })
   }
 
   const { error } = await supabase
@@ -87,11 +87,11 @@ export async function DELETE(
     .maybeSingle()
 
   if (!application) {
-    return NextResponse.json({ ok: false, message: 'Candidatura nao encontrada para este barbeiro.' }, { status: 404 })
+    return NextResponse.json({ ok: false, message: 'Candidatura não encontrada para este barbeiro.' }, { status: 404 })
   }
 
   if (!['pending', 'viewed'].includes(application.status)) {
-    return NextResponse.json({ ok: false, message: 'So e possivel excluir candidaturas ainda em andamento.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Só é possível excluir candidaturas ainda em andamento.' }, { status: 400 })
   }
 
   const { error } = await supabase
@@ -104,5 +104,5 @@ export async function DELETE(
     return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, message: 'Candidatura excluida com sucesso.' })
+    return NextResponse.json({ ok: true, message: 'Candidatura excluída com sucesso.' })
 }

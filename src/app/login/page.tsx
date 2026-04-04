@@ -65,7 +65,7 @@ export default function LoginPage() {
 
       window.location.assign(next)
     } catch {
-      setMessage('Nao foi possivel entrar agora.')
+      setMessage('Não foi possível entrar agora.')
     } finally {
       setIsSigningIn(false)
     }
@@ -94,18 +94,18 @@ export default function LoginPage() {
     setMessage(
       error
         ? error.message
-        : 'Link magico e codigo enviados para seu e-mail. Voce pode entrar pelo botao do e-mail ou digitando o codigo abaixo.'
+        : 'Link mágico e código enviados para seu e-mail. Você pode entrar pelo botão do e-mail ou digitando o código abaixo.'
     )
   }
 
   async function handleVerifyCode() {
     if (!email) {
-      setMessage('Informe o mesmo e-mail usado para receber o codigo.')
+      setMessage('Informe o mesmo e-mail usado para receber o código.')
       return
     }
 
     if (otpCode.length < 6) {
-      setMessage('Digite o codigo de 6 digitos enviado por e-mail.')
+      setMessage('Digite o código de 6 dígitos enviado por e-mail.')
       return
     }
 
@@ -136,7 +136,7 @@ export default function LoginPage() {
         <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-8 shadow-soft">
           <h1 className="text-3xl font-bold text-white">Entrar</h1>
           <p className="mt-2 text-slate-400">
-            Entre com e-mail e senha. Se preferir, o magic link continua disponivel como acesso alternativo.
+            Entre com e-mail e senha. Se preferir, o magic link continua disponível como acesso alternativo.
           </p>
 
           <div className="mt-6 flex gap-3">
@@ -152,7 +152,7 @@ export default function LoginPage() {
               onClick={() => setMode('email')}
               className={`rounded-full px-4 py-2 text-sm ${mode === 'email' ? 'bg-sky-500 font-semibold text-slate-950' : 'border border-slate-700 text-slate-300'}`}
             >
-              Magic link e codigo
+              Magic link e código
             </button>
           </div>
 
@@ -187,20 +187,20 @@ export default function LoginPage() {
                   disabled={isSending}
                   className="rounded-2xl bg-sky-500 px-4 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isSending ? 'Enviando...' : 'Enviar link e codigo'}
+                  {isSending ? 'Enviando...' : 'Enviar link e código'}
                 </button>
                 {hasSentAccess ? (
                   <>
                     <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
                       <p className="text-sm text-slate-300">
-                        Se o link magico falhar ou atrasar, use o codigo de 6 digitos que veio no mesmo e-mail.
+                        Se o link mágico falhar ou atrasar, use o código de 6 dígitos que veio no mesmo e-mail.
                       </p>
                     </div>
                     <input
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      placeholder="Codigo de 6 digitos"
+                      placeholder="Código de 6 dígitos"
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     />
@@ -209,7 +209,7 @@ export default function LoginPage() {
                       disabled={isVerifying}
                       className="rounded-2xl border border-slate-700 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      {isVerifying ? 'Validando codigo...' : 'Entrar com codigo'}
+                      {isVerifying ? 'Validando código...' : 'Entrar com código'}
                     </button>
                   </>
                 ) : null}
@@ -218,12 +218,12 @@ export default function LoginPage() {
 
             {errorParam === 'auth_confirm_failed' ? (
               <p className="text-sm text-rose-300">
-                Nao foi possivel validar o link. Se voce recebeu o codigo no e-mail, tente entrar por ele abaixo.
+                Não foi possível validar o link. Se você recebeu o código no e-mail, tente entrar por ele abaixo.
               </p>
             ) : null}
 
             <p className="text-sm text-slate-400">
-              Ainda nao tem conta?{' '}
+              Ainda não tem conta?{' '}
               <Link href={`/register?role=${role}`} className="text-sky-300">
                 Criar conta
               </Link>

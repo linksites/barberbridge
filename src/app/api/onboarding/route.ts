@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createFallbackUsername } from '@/lib/public-profiles'
 
 function asString(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
@@ -50,11 +51,20 @@ export async function POST(request: Request) {
     )
   }
 
+  const { data: existingUserProfile } = await supabase
+    .from('user_profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const username = existingUserProfile?.username || createFallbackUsername(fullName || user.email || 'perfil', user.id)
+
   const { error: userProfileError } = await supabase.from('user_profiles').upsert(
     {
       id: user.id,
       role,
       full_name: fullName,
+      username,
       phone,
       city,
       state
