@@ -58,6 +58,16 @@ function getRoleFromNext(next: string) {
   return params.get('role') === 'shop' ? 'shop' : 'barber'
 }
 
+function buildRedirectUrl(request: NextRequest, next: string) {
+  const redirectUrl = request.nextUrl.clone()
+  const targetUrl = new URL(next, request.nextUrl.origin)
+
+  redirectUrl.pathname = targetUrl.pathname
+  redirectUrl.search = targetUrl.search
+
+  return redirectUrl
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
   const code = searchParams.get('code')
@@ -68,10 +78,7 @@ export async function GET(request: NextRequest) {
     searchParams.get('redirect_to'),
     searchParams.get('next')
   )
-
-  const redirectTo = request.nextUrl.clone()
-  redirectTo.pathname = next
-  redirectTo.search = ''
+  const redirectTo = buildRedirectUrl(request, next)
 
   const supabase = await createClient()
 
