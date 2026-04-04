@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #07090d;
+  color: #f8fafc;
+}
+
+body {
+  min-height: 100vh;
+}
+
+input, textarea, select {
+  @apply bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-3 outline-none;
+}
+
+button {
+  @apply transition;
+}
