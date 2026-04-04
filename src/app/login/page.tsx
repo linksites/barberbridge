@@ -33,7 +33,7 @@ export default function LoginPage() {
   async function handleLogin() {
     const supabase = createClient()
     const next = nextPath ?? `/onboarding?role=${role}`
-    const emailRedirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(next)}`
+    const emailRedirectTo = `${window.location.origin}${next}`
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
