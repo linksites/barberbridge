@@ -44,6 +44,7 @@ Ao mesmo tempo, o projeto ainda está em uma fase de consolidação. O núcleo d
 - criação automática de shell de perfil em `user_profiles`
 - username público por usuário
 - avatar por URL
+- upload de foto de perfil com Supabase Storage
 - edição persistida do perfil
 - perfil público em `/u/[username]`
 
@@ -69,6 +70,11 @@ Ao mesmo tempo, o projeto ainda está em uma fase de consolidação. O núcleo d
 - bloqueio de promoção a admin via metadata enviada pelo cliente
 - dashboard administrativo inicial em `/dashboard/admin`
 - leitura administrativa global de usuários, vagas, candidaturas e convites
+
+#### Conta
+
+- exclusão autenticada de conta pela área de perfil
+- limpeza de vagas da barbearia antes da remoção do usuário
 
 ## O que está parcial ou pendente
 
@@ -192,6 +198,7 @@ Se a regra for "apagou a conta, apagam-se as vagas", a abordagem mais coerente �
 - `src/services`: consultas e agregações
 - `src/lib/supabase`: clients SSR/browser e proxy
 - `supabase/schema.sql`: schema, triggers e policies
+- `supabase/seed.sql`: dados opcionais de desenvolvimento
 - `ROADMAP.md`: plano de evolução do produto
 
 ## Como rodar localmente
@@ -202,12 +209,14 @@ Se a regra for "apagou a conta, apagam-se as vagas", a abordagem mais coerente �
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
+SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
 ```
 
 3. Execute o SQL de [supabase/schema.sql](./supabase/schema.sql)
-4. Rode `npm install`
-5. Rode `npm run dev`
-6. Acesse `http://localhost:3000`
+4. Se quiser dados de exemplo em dev, execute [supabase/seed.sql](./supabase/seed.sql)
+5. Rode `npm install`
+6. Rode `npm run dev`
+7. Acesse `http://localhost:3000`
 
 ## Configuração do Supabase Auth
 
@@ -256,10 +265,16 @@ O projeto está preparado para deploy padrão na Vercel.
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
+SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key
 ```
 
 4. Use Node 20
 5. Faça o deploy
+
+Importante:
+
+- `SUPABASE_SERVICE_ROLE_KEY` é obrigatória para a exclusão de conta via `/api/account`
+- nunca exponha essa chave no navegador
 
 O `package.json` já fixa:
 

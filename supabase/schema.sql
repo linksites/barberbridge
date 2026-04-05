@@ -111,7 +111,7 @@ create table if not exists public.shop_profiles (
 
 create table if not exists public.jobs (
   id uuid primary key default uuid_generate_v4(),
-  shop_id uuid references public.shop_profiles(id) on delete set null,
+  shop_id uuid references public.shop_profiles(id) on delete cascade,
   title text not null,
   description text not null,
   work_type text not null default 'Freelancer',
@@ -126,6 +126,13 @@ create table if not exists public.jobs (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.jobs drop constraint if exists jobs_shop_id_fkey;
+alter table public.jobs
+  add constraint jobs_shop_id_fkey
+  foreign key (shop_id)
+  references public.shop_profiles(id)
+  on delete cascade;
 
 create table if not exists public.job_applications (
   id uuid primary key default uuid_generate_v4(),
@@ -518,13 +525,6 @@ with check (
     where s.id = invitations.shop_id and s.user_id = auth.uid()
   )
 );
-
-insert into public.jobs (title, description, work_type, payment_model, amount, city, status)
-values
-  ('Barbeiro freelancer para sexta e sábado', 'Atendimento em alta demanda com cortes, barba e acabamento.', 'Freelancer', 'Diária', 250, 'Belém', 'open'),
-  ('Barbeiro fixo com comissão', 'Barbearia em expansão procura profissional com boa presença e técnica.', 'Fixo', 'Comissão + base', 1800, 'Ananindeua', 'open')
-on conflict do nothing;
-
 
 create table if not exists public.conversations (
   id uuid primary key default uuid_generate_v4(),

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { AccountDangerZone } from '@/components/dashboard/account-danger-zone'
 import { ProfileForm } from '@/components/dashboard/profile-form'
 import { getCurrentProfileSettings } from '@/services/dashboard'
 
@@ -29,6 +30,9 @@ export default async function ProfileSettingsPage() {
       ) : null}
       <div className="mt-8">
         <ProfileForm role={profileSettings.role} initialValues={profileSettings.initialValues} />
+      </div>
+      <div className="mt-8">
+        <AccountDangerZone />
       </div>
     </main>
   )
