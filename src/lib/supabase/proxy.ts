@@ -145,10 +145,11 @@ export async function updateSession(request: NextRequest) {
   const nextPath = `${pathname}${request.nextUrl.search}`
   const loginSearch = `?next=${encodeURIComponent(nextPath)}${requestedRole ? `&role=${requestedRole}` : ''}`
 
-  const claimsResult = await supabase.auth.getClaims()
-  const claims = claimsResult.data?.claims
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
 
-  if (!claims?.sub) {
+  if (!user) {
     if (isProtectedPath(pathname)) {
       return redirectWithCookies(request, response, '/login', loginSearch)
     }
@@ -157,7 +158,7 @@ export async function updateSession(request: NextRequest) {
     return response
   }
 
-  const role = await getUserRole(supabase, claims.sub)
+  const role = await getUserRole(supabase, user.id)
 
   if (!role) {
     if (pathname !== '/onboarding') {
