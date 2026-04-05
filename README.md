@@ -1,68 +1,180 @@
-﻿# BarberBridge
+# BarberBridge
 
 Marketplace em Next.js + Supabase para conectar barbeiros e barbearias.
 
-## Visão geral
+Produção: `https://barberbridge.vercel.app`
 
-O projeto já saiu da fase de landing page isolada e hoje cobre uma base funcional de produto:
+## Resumo executivo
 
-- páginas públicas para descoberta de vagas
-- autenticação com Supabase
-- onboarding por perfil
-- dashboards separados para barbeiro e barbearia
-- criação, edição e exclusão de registros do próprio usuário nos fluxos principais
+O BarberBridge já tem base funcional de produto e deixou de ser apenas uma landing page com mocks. Hoje o sistema cobre descoberta pública de vagas, autenticação, onboarding, dashboards separados por perfil, CRUD dos fluxos principais e perfis públicos por usuário.
 
-O ambiente publicado está em:
+Ao mesmo tempo, o projeto ainda está em uma fase de consolidação. O núcleo do marketplace já existe, mas há frentes importantes para fechar antes de tratar o sistema como "produção madura":
 
-- `https://barberbridge.vercel.app`
+- ciclo de vida completo da conta
+- mensageria e realtime
+- portfólio com upload real
+- shortlist e convites completos
+- testes, observabilidade e governança administrativa
 
-## O que já funciona
+## Estado atual do sistema
 
-### Público
+### O que já funciona
 
-- home com direcionamento para barbeiro, barbearia e exploração de vagas
-- listagem pública em `/jobs`
+#### Público
+
+- home com direcionamento por perfil
+- listagem pública de vagas em `/jobs`
 - detalhe de vaga em `/job/[id]`
-- fluxo guiado de entrada a partir de vaga -> cadastro -> login
+- navegação guiada para cadastro e login
+- header responsivo com menu hambúrguer no mobile
 
-### Autenticação e onboarding
+#### Autenticação
 
-- escolha de perfil em `/register`
-- login por magic link com Supabase
-- fallback por código OTP em `/login`
-- login por e-mail e senha
+- cadastro com e-mail e senha
+- login com e-mail e senha
+- fallback por magic link
+- fallback por código OTP
 - callback SSR em `/auth/confirm`
-- normalização de redirects quebrados ou codificados no callback
+- proteção de rotas e redirecionamento por role via proxy
+- logout no header quando o usuário está autenticado
+
+#### Onboarding e perfis
+
 - onboarding persistido em `user_profiles`, `barber_profiles` e `shop_profiles`
+- criação automática de shell de perfil em `user_profiles`
+- username público por usuário
+- avatar por URL
+- edição persistida do perfil
+- perfil público em `/u/[username]`
 
-### Navegação
+#### Barbearia
 
-- header público com CTAs por perfil
-- navegação de dashboard por role em `src/app/dashboard/layout.tsx`
-- dashboard do barbeiro com atalhos para vagas, candidaturas, convites e perfil
-- dashboard da barbearia com atalhos para operação e gestão das vagas
-
-### Barbearia
-
-- criação real de vaga vinculada a `shop_profile`
-- listagem de vagas próprias no dashboard
+- criação real de vagas vinculada à `shop_profile`
+- listagem de vagas próprias
 - edição de vaga própria
 - exclusão de vaga própria
 
-### Barbeiro
+#### Barbeiro
 
-- leitura real de perfil, candidaturas, reviews e convites
-- edição persistida de perfil
-- edição da própria candidatura enquanto ela ainda está em andamento
-- exclusão da própria candidatura enquanto ela ainda está em andamento
+- dashboard com leitura real de perfil
+- candidaturas reais
+- convites reais
+- reviews reais
+- edição e exclusão da própria candidatura
 
-## O que ainda está parcial
+#### Administração
 
-- shortlist de barbeiros ainda usa mock
-- inbox e realtime ainda não estão ligados ao banco
+- base segura para role `admin`
+- allowlist de admins em `public.admin_emails`
+- bloqueio de promoção a admin via metadata enviada pelo cliente
+- dashboard administrativo inicial em `/dashboard/admin`
+- leitura administrativa global de usuários, vagas, candidaturas e convites
+
+## O que está parcial ou pendente
+
+- shortlist de barbeiros ainda não está conectada ao banco
+- mensagens existem no schema, mas a experiência de inbox e realtime ainda não está fechada
 - portfólio ainda não usa upload real com Storage
-- perfil público `/u/[username]` ainda não está fechado como experiência de produção
-- envio de convites pela barbearia ainda não fecha toda a ponta operacional
+- convites ainda não fecham toda a ponta operacional do lado da barbearia
+- o admin atual é principalmente leitura e monitoramento, não moderação completa
+- não existe fluxo de exclusão de conta no produto
+- não existe suíte de testes automatizados
+- o projeto ainda tem trechos com texto e seed em encoding quebrado
+
+## Análise técnica por área
+
+### Arquitetura
+
+- App Router com `src/app`
+- SSR e sessão com `@supabase/ssr`
+- separação simples entre `components`, `services` e `lib`
+- banco centralizado em `supabase/schema.sql`
+
+Essa arquitetura é boa para um MVP evolutivo. O principal gargalo hoje não é estrutura de pastas, e sim maturidade operacional: migrações, testes, observabilidade e fechamento de fluxos incompletos.
+
+### Banco de dados e RLS
+
+Pontos fortes:
+
+- modelagem principal cobre usuários, perfis, vagas, candidaturas, convites, reviews, conversas e mensagens
+- RLS já existe nas tabelas centrais
+- regras de ownership estão implementadas para boa parte do CRUD
+- camada inicial de administração já foi pensada no banco
+
+Pontos de atenção:
+
+- `supabase/schema.sql` está monolítico; o ideal é evoluir para migrações versionadas
+- exclusão de conta ainda não foi desenhada como fluxo do produto
+- hoje `jobs.shop_id` usa `on delete set null`, então apagar uma barbearia direto no banco pode deixar vaga órfã
+- algumas áreas do schema ainda convivem com seeds e textos antigos com encoding ruim
+
+### Autenticação e autorização
+
+Pontos fortes:
+
+- o sistema hoje não depende apenas de magic link
+- login com senha reduziu bastante o atrito de uso
+- o proxy já faz proteção de rotas por sessão e por role
+- a camada `admin` deixou de depender de metadata controlada pelo cliente
+
+Pontos de atenção:
+
+- é preciso validar no painel do Supabase se as rotas e templates continuam alinhados com o fluxo atual
+- falta um fluxo explícito para exclusão de conta, recuperação de senha e gestão de sessão mais completa
+
+### Produto e experiência
+
+Pontos fortes:
+
+- a navegação principal está mais clara
+- o usuário já consegue avançar por uma jornada coerente de descoberta -> cadastro -> onboarding -> dashboard
+- os dois perfis operacionais principais já têm valor real no sistema
+
+Pontos de atenção:
+
+- algumas áreas ainda passam sensação de "em construção"
+- faltam mensagens de sucesso, vazio e erro mais consistentes entre telas
+- o dashboard admin ainda não fecha um ciclo completo de suporte/moderação
+
+## Risco importante: exclusão de contas
+
+Hoje não existe um fluxo oficial de exclusão de conta dentro do produto.
+
+Além disso, o schema atual preserva vagas quando a `shop_profile` é removida:
+
+- `shop_profiles.user_id` referencia `auth.users(id)` com `on delete cascade`
+- `jobs.shop_id` referencia `shop_profiles(id)` com `on delete set null`
+
+Na prática, isso significa:
+
+1. se a barbearia for apagada em `auth.users`, o perfil da barbearia cai em cascata
+2. as vagas ligadas a essa barbearia não são apagadas
+3. essas vagas ficam órfãs
+
+Para a regra de negócio que vocês descreveram, o caminho recomendado é:
+
+1. criar um fluxo autenticado de "Encerrar conta"
+2. executar a exclusão pelo servidor com controle explícito
+3. alterar `jobs.shop_id` para `on delete cascade` ou fazer limpeza transacional manual antes de apagar o usuário
+
+Se a regra for "apagou a conta, apagam-se as vagas", a abordagem mais coerente é alinhar isso no banco e no fluxo do produto.
+
+## Status por módulo
+
+| Módulo | Status | Observação |
+| --- | --- | --- |
+| Landing e descoberta pública | Estável | Home, jobs e job detail já funcionam |
+| Cadastro e login | Estável | Senha, magic link e OTP |
+| Onboarding | Estável | Persiste nos perfis corretos |
+| Dashboard do barbeiro | Funcional | Ainda pode evoluir em UX |
+| Dashboard da barbearia | Funcional | CRUD de vagas já funciona |
+| Perfil público | Funcional | Precisa amadurecer visual e portfólio |
+| Convites | Parcial | Leitura real existe, envio ainda precisa fechar |
+| Mensagens | Parcial | Schema existe, produto ainda não |
+| Portfólio | Parcial | Sem upload real |
+| Administração | Inicial | Leitura global, sem moderação completa |
+| Exclusão de conta | Pendente | Precisa de fluxo e regra de limpeza |
+| Testes e observabilidade | Pendente | Ainda sem cobertura adequada |
 
 ## Stack
 
@@ -70,6 +182,17 @@ O ambiente publicado está em:
 - React 19
 - Tailwind CSS
 - Supabase (`@supabase/ssr` + `@supabase/supabase-js`)
+- TypeScript
+
+## Estrutura principal
+
+- `src/app`: rotas App Router
+- `src/app/api`: endpoints do produto
+- `src/components`: UI pública e componentes de dashboard
+- `src/services`: consultas e agregações
+- `src/lib/supabase`: clients SSR/browser e proxy
+- `supabase/schema.sql`: schema, triggers e policies
+- `ROADMAP.md`: plano de evolução do produto
 
 ## Como rodar localmente
 
@@ -86,38 +209,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-ou-publishable
 5. Rode `npm run dev`
 6. Acesse `http://localhost:3000`
 
-## Fluxo principal do produto
-
-### Visitante
-
-1. Entra em `/`
-2. Vai para `/jobs` ou escolhe o perfil em `/register`
-3. Abre uma vaga em `/job/[id]`
-4. Segue para cadastro ou login
-
-### Barbeiro
-
-1. Faz login em `/login`
-2. Conclui onboarding em `/onboarding`
-3. Cai em `/dashboard/barber`
-4. Explora vagas
-5. Acompanha candidaturas em `/dashboard/applications`
-6. Acompanha convites em `/dashboard/invitations`
-
-### Barbearia
-
-1. Faz login em `/login`
-2. Conclui onboarding em `/onboarding`
-3. Cai em `/dashboard/shop`
-4. Publica vaga
-5. Edita ou exclui vagas próprias
-6. Evolui o funil de contratação
-
 ## Configuração do Supabase Auth
 
-Para o fluxo de magic link e código OTP funcionar com SSR:
-
-1. Em `Authentication -> URL Configuration`, configure:
+Em `Authentication -> URL Configuration`:
 
 ```txt
 Site URL:
@@ -128,29 +222,26 @@ http://localhost:3000/**
 https://barberbridge.vercel.app/**
 ```
 
-2. Em `Authentication -> Email Templates -> Magic Link`, envie no mesmo e-mail:
-- o botão do magic link
-- o código OTP
+Para o template de `Magic Link`, o app já foi ajustado para callback SSR via `/auth/confirm`.
 
-Template sugerido:
+## Administração
 
-```html
-<h2>Seu acesso ao BarberBridge</h2>
-<p>Clique no botão abaixo para entrar com segurança na sua conta.</p>
-<p>
-  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&redirect_to={{ .RedirectTo }}">
-    Entrar no BarberBridge
-  </a>
-</p>
-<p>Se preferir, use este código de 6 dígitos:</p>
-<p><strong>{{ .Token }}</strong></p>
+O código já suporta uma camada inicial de admin.
+
+Para promover um usuário existente a administrador:
+
+```sql
+insert into public.admin_emails (email)
+values ('admin@seudominio.com')
+on conflict (email) do nothing;
 ```
 
-### Observações sobre o callback
+Depois disso, o usuário passa a ser reconhecido como `admin` pela lógica segura do banco.
 
-- o app trata `token_hash`, `redirect_to` e redirects codificados na rota `/auth/confirm`
-- o login por código OTP também pode ser validado direto em `/login`
-- se um link antigo apontar para um deployment antigo da Vercel, gere um e-mail novo
+Importante:
+
+- a base administrativa depende de aplicar o `supabase/schema.sql` atualizado
+- o dashboard admin atual é de leitura e monitoramento, não de moderação completa
 
 ## Deploy na Vercel
 
@@ -178,46 +269,13 @@ O `package.json` já fixa:
 }
 ```
 
-## Estrutura principal
+## Próximas prioridades
 
-- `src/app`: rotas App Router
-- `src/app/api`: endpoints de onboarding, perfil, vagas, candidaturas e convites
-- `src/components`: UI pública e componentes de dashboard
-- `src/services`: consultas e agregações do produto
-- `src/lib/supabase`: clients SSR, browser e proxy de sessão
-- `supabase/schema.sql`: schema inicial e policies
+O plano detalhado está em [ROADMAP.md](./ROADMAP.md), mas a ordem recomendada hoje é:
 
-## Importante após atualizar o schema
-
-Se você já aplicou o schema no Supabase antes das últimas etapas, reaplique a parte nova de [supabase/schema.sql](./supabase/schema.sql) para adicionar as policies mais recentes, especialmente:
-
-- `invitations`
-- `job_applications` update/delete pelo barbeiro
-
-Sem isso, parte do CRUD vai falhar por causa do RLS.
-
-## Rotas principais
-
-- `/`
-- `/jobs`
-- `/job/[id]`
-- `/register`
-- `/login`
-- `/onboarding`
-- `/u/[username]`
-- `/dashboard/barber`
-- `/dashboard/shop`
-- `/dashboard/messages`
-- `/dashboard/reviews`
-- `/dashboard/portfolio`
-- `/dashboard/applications`
-- `/dashboard/invitations`
-- `/dashboard/profile`
-
-## Próximos passos recomendados
-
-1. Ligar mensagens ao Realtime
-2. Integrar portfólio com Supabase Storage
-3. Criar shortlist real de barbeiros com filtros
-4. Fechar o perfil público `/u/[username]`
-5. Implementar envio real de convites pela barbearia
+1. fechar exclusão de conta e limpeza de dados relacionados
+2. aplicar e publicar a base administrativa
+3. concluir convites reais e shortlist
+4. implementar mensagens com Realtime
+5. integrar portfólio com Storage
+6. adicionar testes e observabilidade

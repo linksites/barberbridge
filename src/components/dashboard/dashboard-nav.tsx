@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-type Role = 'barber' | 'shop'
+type Role = 'barber' | 'shop' | 'admin'
 
 interface DashboardNavProps {
   role: Role
@@ -22,6 +22,10 @@ const navigationByRole = {
     { href: '/dashboard/shop', label: 'Dashboard' },
     { href: '/jobs', label: 'Mercado' },
     { href: '/dashboard/profile', label: 'Perfil' }
+  ],
+  admin: [
+    { href: '/dashboard/admin', label: 'Painel' },
+    { href: '/jobs', label: 'Vagas' }
   ]
 } as const satisfies Record<Role, ReadonlyArray<{ href: string; label: string }>>
 
@@ -36,10 +40,15 @@ function isActivePath(pathname: string, href: string) {
 export function DashboardNav({ role, displayName }: DashboardNavProps) {
   const pathname = usePathname()
   const navigation = navigationByRole[role]
-  const primaryAction: { href: '/dashboard/shop' | '/jobs'; label: string } =
+  const primaryAction: { href: '/dashboard/shop' | '/dashboard/admin' | '/jobs'; label: string } =
     role === 'shop'
       ? { href: '/dashboard/shop', label: 'Nova vaga' }
-      : { href: '/jobs', label: 'Explorar vagas' }
+      : role === 'admin'
+        ? { href: '/dashboard/admin', label: 'Painel admin' }
+        : { href: '/jobs', label: 'Explorar vagas' }
+
+  const roleLabel =
+    role === 'shop' ? 'Area da barbearia' : role === 'admin' ? 'Area administrativa' : 'Area do barbeiro'
 
   return (
     <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
@@ -50,7 +59,7 @@ export function DashboardNav({ role, displayName }: DashboardNavProps) {
               Barber<span className="text-sky-400">Bridge</span>
             </Link>
             <p className="mt-1 text-sm text-slate-400">
-              {role === 'shop' ? 'Área da barbearia' : 'Área do barbeiro'}
+              {roleLabel}
               {displayName ? ` • ${displayName}` : ''}
             </p>
           </div>

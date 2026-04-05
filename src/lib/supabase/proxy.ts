@@ -4,12 +4,17 @@ import { type NextRequest, NextResponse } from 'next/server'
 const AUTH_PAGES = new Set(['/login', '/register'])
 const SHOP_ONLY_PATHS = ['/dashboard/shop']
 const BARBER_ONLY_PATHS = ['/dashboard/barber', '/dashboard/portfolio', '/dashboard/applications', '/dashboard/invitations']
+const ADMIN_ONLY_PATHS = ['/dashboard/admin']
 
 function isProtectedPath(pathname: string) {
   return pathname.startsWith('/dashboard') || pathname === '/onboarding'
 }
 
 function inferRoleFromPath(pathname: string) {
+  if (ADMIN_ONLY_PATHS.some((path) => pathname.startsWith(path))) {
+    return 'admin'
+  }
+
   if (SHOP_ONLY_PATHS.some((path) => pathname.startsWith(path))) {
     return 'shop'
   }
@@ -91,10 +96,7 @@ function redirectWithCookies(
   return redirectResponse
 }
 
-async function getUserRole(
-  supabase: ReturnType<typeof createServerClient>,
-  userId: string
-) {
+async function getUserRole(supabase: ReturnType<typeof createServerClient>, userId: string) {
   const { data } = await supabase
     .from('user_profiles')
     .select('role')
@@ -170,11 +172,15 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(request, response, `/dashboard/${role}`)
   }
 
-  if (role === 'shop' && BARBER_ONLY_PATHS.some((path) => pathname.startsWith(path))) {
+  if (role === 'admin' && pathname.startsWith('/dashboard') && !ADMIN_ONLY_PATHS.some((path) => pathname.startsWith(path))) {
+    return redirectWithCookies(request, response, '/dashboard/admin')
+  }
+
+  if (role === 'shop' && (BARBER_ONLY_PATHS.some((path) => pathname.startsWith(path)) || ADMIN_ONLY_PATHS.some((path) => pathname.startsWith(path)))) {
     return redirectWithCookies(request, response, '/dashboard/shop')
   }
 
-  if (role === 'barber' && SHOP_ONLY_PATHS.some((path) => pathname.startsWith(path))) {
+  if (role === 'barber' && (SHOP_ONLY_PATHS.some((path) => pathname.startsWith(path)) || ADMIN_ONLY_PATHS.some((path) => pathname.startsWith(path)))) {
     return redirectWithCookies(request, response, '/dashboard/barber')
   }
 

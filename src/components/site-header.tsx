@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-type DashboardHref = '/dashboard/barber' | '/dashboard/shop' | '/onboarding'
+type DashboardHref = '/dashboard/barber' | '/dashboard/shop' | '/dashboard/admin' | '/onboarding'
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -37,7 +37,13 @@ export function SiteHeader() {
         .eq('id', user.id)
         .maybeSingle()
 
-      setDashboardHref(profile?.role === 'shop' ? '/dashboard/shop' : '/dashboard/barber')
+      setDashboardHref(
+        profile?.role === 'shop'
+          ? '/dashboard/shop'
+          : profile?.role === 'admin'
+            ? '/dashboard/admin'
+            : '/dashboard/barber'
+      )
     }
 
     loadSessionState()

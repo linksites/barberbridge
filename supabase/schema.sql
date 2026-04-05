@@ -13,6 +13,11 @@ create table if not exists public.user_profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.admin_emails (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.slugify_profile_value(input text)
 returns text
 language sql
@@ -40,6 +45,23 @@ begin
 
   return left(base_username, 23) || '-' || suffix;
 end;
+$$;
+
+create or replace function public.is_admin(check_user_id uuid default auth.uid())
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_profiles up
+    join auth.users au on au.id = up.id
+    join public.admin_emails ae on lower(ae.email) = lower(au.email)
+    where up.id = check_user_id
+      and up.role = 'admin'
+  );
 $$;
 
 create table if not exists public.barber_profiles (
@@ -160,7 +182,11 @@ insert into public.user_profiles (id, role, full_name, username)
 select
   users.id,
   case
-    when users.raw_user_meta_data ->> 'role' in ('barber', 'shop', 'admin') then users.raw_user_meta_data ->> 'role'
+    when exists (
+      select 1 from public.admin_emails admins
+      where lower(admins.email) = lower(users.email)
+    ) then 'admin'
+    when users.raw_user_meta_data ->> 'role' in ('barber', 'shop') then users.raw_user_meta_data ->> 'role'
     else 'barber'
   end,
   nullif(
@@ -198,6 +224,19 @@ from auth.users users
 where users.id = profiles.id
   and (profiles.username is null or btrim(profiles.username) = '');
 
+update public.user_profiles profiles
+set role = case
+  when exists (
+    select 1 from public.admin_emails admins
+    where lower(admins.email) = lower(users.email)
+  ) then 'admin'
+  when users.raw_user_meta_data ->> 'role' in ('barber', 'shop') then users.raw_user_meta_data ->> 'role'
+  when profiles.role in ('barber', 'shop') then profiles.role
+  else 'barber'
+end
+from auth.users users
+where users.id = profiles.id;
+
 create or replace function public.handle_new_auth_user()
 returns trigger
 language plpgsql
@@ -209,7 +248,11 @@ declare
   suggested_name text;
 begin
   requested_role := case
-    when new.raw_user_meta_data ->> 'role' in ('barber', 'shop', 'admin') then new.raw_user_meta_data ->> 'role'
+    when exists (
+      select 1 from public.admin_emails admins
+      where lower(admins.email) = lower(new.email)
+    ) then 'admin'
+    when new.raw_user_meta_data ->> 'role' in ('barber', 'shop') then new.raw_user_meta_data ->> 'role'
     else 'barber'
   end;
 
@@ -245,10 +288,48 @@ begin
 end;
 $$;
 
+create or replace function public.sync_admin_role_from_allowlist()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    update public.user_profiles profiles
+    set role = 'admin',
+        updated_at = now()
+    from auth.users users
+    where users.id = profiles.id
+      and lower(users.email) = lower(new.email);
+
+    return new;
+  end if;
+
+  update public.user_profiles profiles
+  set role = case
+      when users.raw_user_meta_data ->> 'role' in ('barber', 'shop') then users.raw_user_meta_data ->> 'role'
+      when profiles.role = 'shop' then 'shop'
+      else 'barber'
+    end,
+    updated_at = now()
+  from auth.users users
+  where users.id = profiles.id
+    and lower(users.email) = lower(old.email);
+
+  return old;
+end;
+$$;
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_auth_user();
+
+drop trigger if exists on_admin_email_sync on public.admin_emails;
+create trigger on_admin_email_sync
+after insert or delete on public.admin_emails
+for each row execute function public.sync_admin_role_from_allowlist();
 
 alter table public.user_profiles enable row level security;
 alter table public.barber_profiles enable row level security;
@@ -282,17 +363,32 @@ create policy "Public can view user profile shells"
 on public.user_profiles for select
 using (username is not null and btrim(username) <> '');
 
+drop policy if exists "Admins read all user profiles" on public.user_profiles;
+create policy "Admins read all user profiles"
+on public.user_profiles for select
+using (public.is_admin());
+
 drop policy if exists "Barber manages own profile" on public.barber_profiles;
 create policy "Barber manages own profile"
 on public.barber_profiles for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "Admins read all barber profiles" on public.barber_profiles;
+create policy "Admins read all barber profiles"
+on public.barber_profiles for select
+using (public.is_admin());
+
 drop policy if exists "Shop manages own profile" on public.shop_profiles;
 create policy "Shop manages own profile"
 on public.shop_profiles for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+drop policy if exists "Admins read all shop profiles" on public.shop_profiles;
+create policy "Admins read all shop profiles"
+on public.shop_profiles for select
+using (public.is_admin());
 
 drop policy if exists "Shop manages own jobs" on public.jobs;
 create policy "Shop manages own jobs"
@@ -309,6 +405,11 @@ with check (
     where s.id = jobs.shop_id and s.user_id = auth.uid()
   )
 );
+
+drop policy if exists "Admins read all jobs" on public.jobs;
+create policy "Admins read all jobs"
+on public.jobs for select
+using (public.is_admin());
 
 drop policy if exists "Barber creates own applications" on public.job_applications;
 create policy "Barber creates own applications"
@@ -335,6 +436,11 @@ using (
     where j.id = job_applications.job_id and s.user_id = auth.uid()
   )
 );
+
+drop policy if exists "Admins read all applications" on public.job_applications;
+create policy "Admins read all applications"
+on public.job_applications for select
+using (public.is_admin());
 
 drop policy if exists "Barber updates own applications" on public.job_applications;
 create policy "Barber updates own applications"
@@ -371,6 +477,11 @@ using (
     where b.id = invitations.barber_id and b.user_id = auth.uid()
   )
 );
+
+drop policy if exists "Admins read all invitations" on public.invitations;
+create policy "Admins read all invitations"
+on public.invitations for select
+using (public.is_admin());
 
 drop policy if exists "Barber updates own invitations" on public.invitations;
 create policy "Barber updates own invitations"
