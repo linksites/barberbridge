@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
 function asString(value: unknown) {
@@ -21,43 +22,79 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        message: 'Faça login antes de publicar uma vaga.'
+        message: 'Faca login antes de publicar uma vaga.'
       },
       { status: 401 }
+    )
+  }
+
+  const body = await request.json()
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const role = profile?.role ?? null
+  const isAdmin = role === 'admin'
+  const isShop = role === 'shop'
+
+  if (!isAdmin && !isShop) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: 'Somente barbearias e admins podem publicar vagas.'
+      },
+      { status: 403 }
+    )
+  }
+
+  const shopLookupColumn = isAdmin ? 'id' : 'user_id'
+  const shopLookupValue = isAdmin ? asString(body.shop_id) : user.id
+
+  if (isAdmin && !shopLookupValue) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: 'Selecione a barbearia responsavel pela vaga.'
+      },
+      { status: 400 }
     )
   }
 
   const { data: shopProfile, error: shopError } = await supabase
     .from('shop_profiles')
     .select('id, shop_name')
-    .eq('user_id', user.id)
+    .eq(shopLookupColumn, shopLookupValue)
     .single()
 
   if (shopError || !shopProfile) {
     return NextResponse.json(
       {
         ok: false,
-        message: 'Conclua o onboarding da barbearia antes de publicar vagas.'
+        message: isAdmin
+          ? 'Selecione uma barbearia valida para publicar a vaga.'
+          : 'Conclua o onboarding da barbearia antes de publicar vagas.'
       },
       { status: 400 }
     )
   }
 
-  const body = await request.json()
   const title = asString(body.title)
   const description = asString(body.description)
   const city = asString(body.city)
   const state = asOptionalString(body.state)
   const neighborhood = asOptionalString(body.neighborhood)
   const workType = asString(body.work_type) || 'Freelancer'
-  const paymentModel = asString(body.payment_model) || 'Diária'
+  const paymentModel = asString(body.payment_model) || 'Diaria'
   const amount = Number(body.amount)
 
   if (!title || !description || !city) {
     return NextResponse.json(
       {
         ok: false,
-        message: 'Preencha título, descrição e cidade para publicar a vaga.'
+        message: 'Preencha titulo, descricao e cidade para publicar a vaga.'
       },
       { status: 400 }
     )
@@ -67,13 +104,14 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        message: 'Informe um valor válido para a vaga.'
+        message: 'Informe um valor valido para a vaga.'
       },
       { status: 400 }
     )
   }
 
-  const { data: job, error } = await supabase
+  const jobsClient = isAdmin ? createAdminClient() : supabase
+  const { data: job, error } = await jobsClient
     .from('jobs')
     .insert({
       shop_id: shopProfile.id,

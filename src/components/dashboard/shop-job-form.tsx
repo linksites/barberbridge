@@ -6,7 +6,12 @@ import { useRouter } from 'next/navigation'
 interface ShopJobFormProps {
   mode?: 'create' | 'edit'
   jobId?: string
+  shopOptions?: Array<{
+    id: string
+    label: string
+  }>
   initialValues?: {
+    shopId?: string
     title: string
     description: string
     city: string
@@ -24,11 +29,15 @@ interface ShopJobFormProps {
 export function ShopJobForm({
   mode = 'create',
   jobId,
+  shopOptions,
   initialValues,
   onSuccess,
   onCancel
 }: ShopJobFormProps) {
   const router = useRouter()
+  const defaultShopId = initialValues?.shopId ?? (shopOptions?.length === 1 ? shopOptions[0].id : '')
+
+  const [shopId, setShopId] = useState(defaultShopId)
   const [title, setTitle] = useState(initialValues?.title ?? '')
   const [description, setDescription] = useState(initialValues?.description ?? '')
   const [city, setCity] = useState(initialValues?.city ?? '')
@@ -36,12 +45,17 @@ export function ShopJobForm({
   const [neighborhood, setNeighborhood] = useState(initialValues?.neighborhood ?? '')
   const [amount, setAmount] = useState(initialValues?.amount ?? '')
   const [workType, setWorkType] = useState(initialValues?.workType ?? 'Freelancer')
-  const [paymentModel, setPaymentModel] = useState(initialValues?.paymentModel ?? 'Diária')
+  const [paymentModel, setPaymentModel] = useState(initialValues?.paymentModel ?? 'Diaria')
   const [status, setStatus] = useState(initialValues?.status ?? 'open')
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit() {
+    if (shopOptions && shopOptions.length > 0 && !shopId) {
+      setMessage('Selecione a barbearia responsavel pela vaga.')
+      return
+    }
+
     setIsSubmitting(true)
     setMessage('')
 
@@ -50,6 +64,7 @@ export function ShopJobForm({
         method: mode === 'edit' ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          shop_id: shopId,
           title,
           description,
           city,
@@ -65,7 +80,7 @@ export function ShopJobForm({
       const data = await response.json()
 
       if (!response.ok) {
-        setMessage(data.message ?? 'Não foi possível salvar a vaga.')
+        setMessage(data.message ?? 'Nao foi possivel salvar a vaga.')
         return
       }
 
@@ -77,7 +92,7 @@ export function ShopJobForm({
         setNeighborhood('')
         setAmount('')
         setWorkType('Freelancer')
-        setPaymentModel('Diária')
+        setPaymentModel('Diaria')
         setStatus('open')
       }
 
@@ -85,7 +100,7 @@ export function ShopJobForm({
       router.refresh()
       onSuccess?.()
     } catch {
-      setMessage(mode === 'edit' ? 'Não foi possível atualizar a vaga.' : 'Não foi possível publicar a vaga.')
+      setMessage(mode === 'edit' ? 'Nao foi possivel atualizar a vaga.' : 'Nao foi possivel publicar a vaga.')
     } finally {
       setIsSubmitting(false)
     }
@@ -93,30 +108,46 @@ export function ShopJobForm({
 
   return (
     <div className="grid gap-4">
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título da vaga" />
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descrição da vaga" rows={5} />
+      {shopOptions ? (
+        <select value={shopId} onChange={(e) => setShopId(e.target.value)}>
+          <option value="">Selecione a barbearia</option>
+          {shopOptions.map((shop) => (
+            <option key={shop.id} value={shop.id}>
+              {shop.label}
+            </option>
+          ))}
+        </select>
+      ) : null}
+
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titulo da vaga" />
+      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Descricao da vaga" rows={5} />
+
       <div className="grid gap-4 md:grid-cols-2">
         <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cidade" />
         <input value={state} onChange={(e) => setState(e.target.value)} placeholder="Estado" />
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Bairro" />
         <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Valor" inputMode="decimal" />
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <select value={workType} onChange={(e) => setWorkType(e.target.value)}>
           <option value="Freelancer">Freelancer</option>
           <option value="Fixo">Fixo</option>
-          <option value="Temporário">Temporário</option>
+          <option value="Temporario">Temporario</option>
         </select>
+
         <select value={paymentModel} onChange={(e) => setPaymentModel(e.target.value)}>
-          <option value="Diária">Diária</option>
-          <option value="Comissão + base">Comissão + base</option>
-          <option value="Comissão">Comissão</option>
-          <option value="Salário fixo">Salário fixo</option>
+          <option value="Diaria">Diaria</option>
+          <option value="Comissao + base">Comissao + base</option>
+          <option value="Comissao">Comissao</option>
+          <option value="Salario fixo">Salario fixo</option>
           <option value="Por atendimento">Por atendimento</option>
         </select>
       </div>
+
       {mode === 'edit' ? (
         <select value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="draft">Rascunho</option>
@@ -124,6 +155,7 @@ export function ShopJobForm({
           <option value="closed">Fechada</option>
         </select>
       ) : null}
+
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleSubmit}
@@ -132,6 +164,7 @@ export function ShopJobForm({
         >
           {isSubmitting ? (mode === 'edit' ? 'Salvando...' : 'Publicando...') : mode === 'edit' ? 'Salvar vaga' : 'Publicar vaga'}
         </button>
+
         {mode === 'edit' && onCancel ? (
           <button
             type="button"
@@ -142,6 +175,7 @@ export function ShopJobForm({
           </button>
         ) : null}
       </div>
+
       {message ? <p className="text-sm text-slate-300">{message}</p> : null}
     </div>
   )

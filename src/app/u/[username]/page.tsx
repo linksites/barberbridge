@@ -39,6 +39,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   const instagramLink = buildInstagramLink(profile.instagram)
   const whatsappLink = buildWhatsappLink(profile.whatsapp)
+  const hasRatingData = profile.reviews.length > 0
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">
@@ -70,7 +71,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                   </span>
                 ) : null}
                 <span className="rounded-full border border-slate-700 px-3 py-1">
-                  Nota {profile.average_rating.toFixed(1)}
+                  {hasRatingData ? `Nota ${profile.average_rating.toFixed(1)}` : 'Ainda sem dados avaliativos'}
                 </span>
                 {profile.is_verified ? (
                   <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">

@@ -1,9 +1,12 @@
 import { Shield, Users, BriefcaseBusiness, Mail, FileText } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { EmptyState } from '@/components/dashboard/empty-state'
+import { JobEntryActions } from '@/components/dashboard/job-entry-actions'
 import { SectionCard } from '@/components/dashboard/section-card'
+import { ShopJobForm } from '@/components/dashboard/shop-job-form'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { StatusPill } from '@/components/dashboard/status-pill'
+import { currency } from '@/lib/utils'
 import { getCurrentAdminDashboard } from '@/services/admin'
 
 const icons = [
@@ -64,6 +67,25 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-10 grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
         <SectionCard
+          title="Criar vaga"
+          description="Publicacao administrativa de vagas em nome de uma barbearia existente."
+        >
+          {adminDashboard.shops.length > 0 ? (
+            <ShopJobForm
+              shopOptions={adminDashboard.shops.map((shop) => ({
+                id: shop.id,
+                label: shop.city ? `${shop.shop_name} - ${shop.city}` : shop.shop_name
+              }))}
+            />
+          ) : (
+            <EmptyState
+              title="Nenhuma barbearia cadastrada"
+              description="Crie ou conclua o onboarding de uma barbearia antes de publicar vagas pelo painel admin."
+            />
+          )}
+        </SectionCard>
+
+        <SectionCard
           title="Usuarios recentes"
           description="Leitura administrativa de `user_profiles` para suporte, verificacao e acompanhamento."
         >
@@ -76,7 +98,7 @@ export default async function AdminDashboardPage() {
                       <h3 className="font-semibold text-white">{user.full_name ?? user.username ?? 'Usuario sem nome'}</h3>
                       <p className="mt-1 text-sm text-slate-400">
                         {user.username ? `@${user.username}` : 'Sem username'}
-                        {user.city ? ` • ${user.city}` : ''}
+                        {user.city ? ` - ${user.city}` : ''}
                       </p>
                       <p className="mt-2 text-xs text-slate-500">
                         Criado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
@@ -91,10 +113,12 @@ export default async function AdminDashboardPage() {
             <EmptyState title="Sem usuarios recentes" description="Novos cadastros aparecerao aqui quando forem criados." />
           )}
         </SectionCard>
+      </div>
 
+      <div className="mt-6">
         <SectionCard
           title="Vagas recentes"
-          description="Acompanhamento administrativo das vagas publicadas no marketplace."
+          description="Criacao, edicao e exclusao de vagas com visao administrativa global."
         >
           {adminDashboard.recentJobs.length > 0 ? (
             <div className="space-y-4">
@@ -103,10 +127,18 @@ export default async function AdminDashboardPage() {
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <h3 className="font-semibold text-white">{job.title}</h3>
-                      <p className="mt-1 text-sm text-slate-400">{job.city}</p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {job.shop_name ?? 'Barbearia sem nome'}
+                        {job.city ? ` - ${job.city}` : ''}
+                        {job.state ? ` / ${job.state}` : ''}
+                      </p>
+                      <p className="mt-2 text-sm text-sky-300">
+                        {currency(Number(job.amount))} - {job.work_type} - {job.payment_model}
+                      </p>
                       <p className="mt-2 text-xs text-slate-500">
                         Criada em {new Date(job.created_at).toLocaleDateString('pt-BR')}
                       </p>
+                      <JobEntryActions job={job} />
                     </div>
                     <StatusPill label={job.status} />
                   </div>

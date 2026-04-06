@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
 function asString(value: unknown) {
@@ -10,7 +11,7 @@ function asOptionalString(value: unknown) {
   return normalized || null
 }
 
-async function getCurrentShop(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function getCurrentActor(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
     error: authError
@@ -20,10 +21,23 @@ async function getCurrentShop(supabase: Awaited<ReturnType<typeof createClient>>
     return null
   }
 
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  return {
+    userId: user.id,
+    role: profile?.role ?? null
+  }
+}
+
+async function getCurrentShopByUserId(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data: shop } = await supabase
     .from('shop_profiles')
     .select('id, shop_name')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle()
 
   return shop
@@ -34,9 +48,21 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
-  const shop = await getCurrentShop(supabase)
+  const actor = await getCurrentActor(supabase)
 
-  if (!shop) {
+  if (!actor) {
+    return NextResponse.json({ ok: false, message: 'Faca login antes de editar uma vaga.' }, { status: 401 })
+  }
+
+  const isAdmin = actor.role === 'admin'
+
+  if (!isAdmin && actor.role !== 'shop') {
+    return NextResponse.json({ ok: false, message: 'Voce nao tem permissao para editar vagas.' }, { status: 403 })
+  }
+
+  const shop = isAdmin ? null : await getCurrentShopByUserId(supabase, actor.userId)
+
+  if (!isAdmin && !shop) {
     return NextResponse.json({ ok: false, message: 'Somente a barbearia dona da vaga pode editar esse registro.' }, { status: 401 })
   }
 
@@ -53,29 +79,34 @@ export async function PATCH(
   const amount = Number(body.amount)
 
   if (!title || !description || !city) {
-    return NextResponse.json({ ok: false, message: 'Preencha título, descrição e cidade para salvar a vaga.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Preencha titulo, descricao e cidade para salvar a vaga.' }, { status: 400 })
   }
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ ok: false, message: 'Informe um valor válido para a vaga.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Informe um valor valido para a vaga.' }, { status: 400 })
   }
 
   if (!['draft', 'open', 'closed'].includes(status)) {
-    return NextResponse.json({ ok: false, message: 'Status de vaga inválido.' }, { status: 400 })
+    return NextResponse.json({ ok: false, message: 'Status de vaga invalido.' }, { status: 400 })
   }
 
-  const { data: existingJob } = await supabase
-    .from('jobs')
-    .select('id')
-    .eq('id', id)
-    .eq('shop_id', shop.id)
-    .maybeSingle()
+  let existingJobQuery = supabase.from('jobs').select('id').eq('id', id)
+
+  if (!isAdmin) {
+    existingJobQuery = existingJobQuery.eq('shop_id', shop!.id)
+  }
+
+  const { data: existingJob } = await existingJobQuery.maybeSingle()
 
   if (!existingJob) {
-    return NextResponse.json({ ok: false, message: 'Vaga não encontrada para esta barbearia.' }, { status: 404 })
+    return NextResponse.json(
+      { ok: false, message: isAdmin ? 'Vaga nao encontrada.' : 'Vaga nao encontrada para esta barbearia.' },
+      { status: 404 }
+    )
   }
 
-  const { data: job, error } = await supabase
+  const jobsClient = isAdmin ? createAdminClient() : supabase
+  let updateQuery = jobsClient
     .from('jobs')
     .update({
       title,
@@ -90,9 +121,13 @@ export async function PATCH(
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
-    .eq('shop_id', shop.id)
     .select('id, title, city, amount, payment_model, work_type, status')
-    .single()
+
+  if (!isAdmin) {
+    updateQuery = updateQuery.eq('shop_id', shop!.id)
+  }
+
+  const { data: job, error } = await updateQuery.single()
 
   if (error) {
     return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
@@ -106,18 +141,37 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await createClient()
-  const shop = await getCurrentShop(supabase)
+  const actor = await getCurrentActor(supabase)
 
-  if (!shop) {
+  if (!actor) {
+    return NextResponse.json({ ok: false, message: 'Faca login antes de excluir uma vaga.' }, { status: 401 })
+  }
+
+  const isAdmin = actor.role === 'admin'
+
+  if (!isAdmin && actor.role !== 'shop') {
+    return NextResponse.json({ ok: false, message: 'Voce nao tem permissao para excluir vagas.' }, { status: 403 })
+  }
+
+  const shop = isAdmin ? null : await getCurrentShopByUserId(supabase, actor.userId)
+
+  if (!isAdmin && !shop) {
     return NextResponse.json({ ok: false, message: 'Somente a barbearia dona da vaga pode excluir esse registro.' }, { status: 401 })
   }
 
   const { id } = await params
-  const { error } = await supabase.from('jobs').delete().eq('id', id).eq('shop_id', shop.id)
+  const jobsClient = isAdmin ? createAdminClient() : supabase
+  let deleteQuery = jobsClient.from('jobs').delete().eq('id', id)
+
+  if (!isAdmin) {
+    deleteQuery = deleteQuery.eq('shop_id', shop!.id)
+  }
+
+  const { error } = await deleteQuery
 
   if (error) {
     return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, message: 'Vaga excluída com sucesso.' })
+  return NextResponse.json({ ok: true, message: 'Vaga excluida com sucesso.' })
 }

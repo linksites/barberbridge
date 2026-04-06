@@ -16,13 +16,29 @@ type RecentUser = {
   created_at: string
 }
 
-type RecentJob = {
+type ShopOption = {
+  id: string
+  shop_name: string
+  city: string | null
+}
+
+type RecentJobRow = {
   id: string
   title: string
+  description: string
   city: string
+  state: string | null
+  neighborhood: string | null
   status: string
+  amount: number
+  payment_model: string
+  work_type: string
   created_at: string
   shop_id: string | null
+}
+
+type RecentJob = RecentJobRow & {
+  shop_name: string | null
 }
 
 export async function getCurrentAdminDashboard() {
@@ -51,7 +67,8 @@ export async function getCurrentAdminDashboard() {
     applicationsCountResult,
     invitationsCountResult,
     recentUsersResult,
-    recentJobsResult
+    recentJobsResult,
+    shopsResult
   ] = await Promise.all([
     supabase.from('user_profiles').select('*', { count: 'exact', head: true }),
     supabase.from('jobs').select('*', { count: 'exact', head: true }),
@@ -64,10 +81,21 @@ export async function getCurrentAdminDashboard() {
       .limit(6),
     supabase
       .from('jobs')
-      .select('id, title, city, status, created_at, shop_id')
+      .select('id, title, description, city, state, neighborhood, status, amount, payment_model, work_type, created_at, shop_id')
       .order('created_at', { ascending: false })
-      .limit(6)
+      .limit(6),
+    supabase
+      .from('shop_profiles')
+      .select('id, shop_name, city')
+      .order('shop_name', { ascending: true })
   ])
+
+  const shops = (shopsResult.data ?? []) as ShopOption[]
+  const shopsById = new Map(shops.map((shop) => [shop.id, shop.shop_name]))
+  const recentJobs = ((recentJobsResult.data ?? []) as RecentJobRow[]).map((job) => ({
+    ...job,
+    shop_name: job.shop_id ? shopsById.get(job.shop_id) ?? null : null
+  }))
 
   const counts: AdminCounts = {
     users: usersCountResult.count ?? 0,
@@ -79,7 +107,8 @@ export async function getCurrentAdminDashboard() {
   return {
     profile,
     counts,
+    shops,
     recentUsers: (recentUsersResult.data ?? []) as RecentUser[],
-    recentJobs: (recentJobsResult.data ?? []) as RecentJob[]
+    recentJobs: recentJobs as RecentJob[]
   }
 }

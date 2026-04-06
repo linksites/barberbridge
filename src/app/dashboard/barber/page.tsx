@@ -18,8 +18,8 @@ export default async function BarberDashboardPage() {
   const { profile, applications, reviews, invitations } = await getCurrentBarberDashboard()
   const viewedApplications = applications.filter((item) => item.status === 'viewed').length
   const activeApplications = applications.filter((item) => ['pending', 'viewed'].includes(item.status)).length
-  const averageRating =
-    reviews.length > 0 ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length : Number(profile?.average_rating ?? 0)
+  const hasRatingData = reviews.length > 0
+  const averageRating = hasRatingData ? reviews.reduce((sum, item) => sum + item.rating, 0) / reviews.length : null
   const stats = [
     {
       title: 'Especialidades',
